@@ -1,0 +1,93 @@
+<h2>Lab Session #02</h2>
+<h3>Introduction</h3>
+<p>Welcome to the second lab. This time, we'll start programming knowledge graphs using Python.</p>
+<p><img class="img-fluid align-top" style="display: block; margin-left: auto; margin-right: auto;" src="https://www.w3.org/TR/rdf11-primer/example-graph.jpg" alt="Example knowledge graph" width="558" height="373"></p>
+<h3>Task #1: RDF</h3>
+<p>Your first task is to translate some of the knowledge graphs you developed on last week's Worksheet #1 into a real RDF graph. Write down the triples using the Turtle format discussed in the lecture (use <tt>.ttl</tt> for the file extension, like in <tt>mytriples.ttl</tt>). Then, validate your graph by:</p>
+<ol>
+<li>Using a browser, go to <a href="http://ttl.summerofcode.be">http://ttl.summerofcode.be</a> and paste your Turtle code into the designated text area.</li>
+<li>Click the “Validate! ” button.</li>
+<li>Examine the results of parsing the input. Correct any mistakes that you might have made accordingly.</li>
+<li>If no mistakes are found in the input, you should see a message that reads “Congrats! Your syntax is correct.”.</li>
+</ol>
+<p>There are a number of other RDF-related tools online; for example, try out the RDF converter at <a href="https://issemantic.net/rdf-converter" target="_blank" rel="noopener">https://issemantic.net/rdf-converter</a> and convert your Turtle file (.ttl) into JSON-LD and RDF/XML to get an idea how these formats look like. The validator at <a href="https://www.w3.org/RDF/Validator/">https://www.w3.org/RDF/Validator/</a> only accepts RDF/XML, but it can additionally draw you a graph corresponding to your triples (under the "Display Result Options", select "Triples and Graph"). Convert your RDF file from Turtle to RDF/XML and visualize it in form of a graph.</p>
+<p>Some notes to get started:</p>
+<ul>
+<li><strong>Turtle:</strong> If you're unsure about the Turtle format, best look at the examples on the lecture slides and the <a href="https://www.w3.org/TR/rdf11-primer/" target="_blank" rel="noopener">RDF Primer</a> (the full details <a href="https://www.w3.org/TR/turtle/" target="_blank" rel="noopener">are defined here</a>, but that's not needed to get started).</li>
+<li><strong>RDFS:</strong> You will probably encounter references to <code>rdfs:</code> (RDF Schema) in examples you find online; we will cover the details of RDFS in this week's Lecture #3.</li>
+<li><strong>Predicates:</strong> We have not yet covered the details how predicates like "studies at" are encoded in URIs. The details will come in the next lecture &amp; lab; for now, just use a URI like <tt>http://example.org/studiesAt</tt>.</li>
+<li><strong>Wikidata:</strong> Remember to use the correct form for Wikidata URIs using the <tt>entity/</tt> path, e.g., <a href="http://www.wikidata.org/entity/Q326342" target="_blank" rel="noopener">http://www.wikidata.org/entity/Q326342</a> for Concordia. The <tt>wiki/</tt> path is a redirect for displaying a human-readable HTML page in a browser and cannot be used for working with RDF triples in a program.</li>
+<li><strong>Namespace Declarations:</strong> Remember to declare necessary namespaces at the beginning of your Turtle files. This is often overlooked by beginners and can lead to validation errors.</li>
+<li><strong>Examples of Common Mistakes:</strong> Watch out for common pitfalls such as incorrect URI formats, forgetting to close triples with a period, or mismatched prefixes. We'll review some of these in class, but keeping an eye out for them now can save you time.</li>
+<li><strong>Encouragement for Peer Review:</strong> Consider reviewing a classmate's Turtle file and having them review yours. Peer review can be an excellent way to learn from each other and catch errors you might have missed.</li>
+<li><strong>Reminder on File Extension:</strong> Make sure to save your work with the <code>.ttl</code> file extension. This ensures that the tools we use can properly recognize and process your Turtle files.</li>
+</ul>
+<p> </p>
+<h3>Task #2: RDFLib</h3>
+<p>For working with RDF and related standards, there are a multitude of libraries available. For example, a popular open source framework for <em>Java</em> is <a href="https://jena.apache.org/">Apache Jena</a>. Here, we will use the <a href="https://github.com/RDFLib/rdflib">RDFlib</a> for Python (<a href="https://rdflib.readthedocs.io/en/stable/">documentation</a>).</p>
+<p>First, we need to install RDFLib. Run the command below in your Conda environment:</p>
+<pre>pip install rdflib </pre>
+<p>and check out the first section in the documentation, <a href="https://rdflib.readthedocs.io/en/stable/gettingstarted.html">Getting started with RDFLib</a>.</p>
+<h4> </h4>
+<h4>Task #2.1 First steps with RDFlib</h4>
+<p>Now, we want to load the graph you prepared in Task 1. The code you need from RDFLib is <code>&lt;graph&gt;.parse</code>, as shown below:</p>
+<pre>import rdflib<br><br># Create a Graph<br>g = rdflib.Graph()<br><br># Parse an RDF file<br>g.parse(<code class="!whitespace-pre hljs language-python"><span class="hljs-string">"path/to/your/file.ttl"</span></code>) # Provide the RDF file path here</pre>
+<p>You can now print out your whole graph <code>g</code> using the code below:</p>
+<pre># Loop through each triple in the graph (subj, pred, obj)<br>for s,p,o in g:<br>    # Print the subject, predicate and the object<br>    print s,p,o    </pre>
+<p>Now, go through the RDFLib documentation section, <a href="https://rdflib.readthedocs.io/en/stable/intro_to_parsing.html">Loading and saving RDF</a> to see how to read and write RDF graphs in different formats. Add code to write the triples in a different format, e.g., RDF/XML and N-Triples.</p>
+<p><strong>Note:</strong> If you encounter any issues with installation or loading files, refer to the troubleshooting section in the RDFLib documentation, or ask for help in class.</p>
+<h4> </h4>
+<h4>Task #2.2 Creating triples and namespaces</h4>
+<p>We can also create triples directly with RDFLib. To begin, read the documentation section, <a href="https://rdflib.readthedocs.io/en/stable/intro_to_creating_rdf.html">Creating RDF triples</a>.<br><br>Now, start your program by importing the following libraries:</p>
+<pre>from rdflib import Graph, Literal, RDF, Namespace<br>from rdflib.namespace import FOAF, RDFS</pre>
+<p>Then, create a new graph instance with:</p>
+<pre>g = Graph()</pre>
+<p>Now you can use the <code>g.add()</code> function to add triples to the graph. Write code that adds triples representing:<br><tt></tt></p>
+<ul>
+<li><tt>&lt;Joe&gt; &lt;is a&gt; &lt;foaf:Person&gt;</tt></li>
+<li><tt>&lt;Joe&gt; &lt;rdfs:label&gt; "Joe"</tt></li>
+<li><tt>&lt;Joe&gt; &lt;foaf:knows&gt; &lt;Jane&gt;</tt></li>
+</ul>
+<p><strong>Note:</strong> Remember to replace <code>&lt;Joe&gt;</code> and <code>&lt;Jane&gt;</code> with appropriate URIs to represent these individuals.</p>
+<p>For printing the generated graph, you can use the <code>g.serialize()</code> function.</p>
+<p><em>Additional notes:</em></p>
+<ul>
+<li>RDFLib includes pre-defined namespaces like FOAF and RDFS, which are commonly used in RDF graphs. FOAF, for instance, is used to describe people and their relationships. </li>
+<li>In order to add another prefix to the knowledge graph, like <tt>foaf</tt>, use the <code>g.bind()</code> function. This not only adds the prefix but also makes your Turtle file more readable by avoiding full URIs. See <a href="https://rdflib.readthedocs.io/en/stable/namespaces_and_bindings.html">Namespaces and Bindings</a> for the details.</li>
+</ul>
+<h4> </h4>
+<h4>Task #2.3 Navigating Graphs</h4>
+<p>The next step is to learn how to <em>navigate</em> graphs, in order to retrieve the knowledge we need, for example, to answer a question.<br><br>RDFLib supports basic <em>triple pattern matching</em> through the <code>triples()</code> function. You can match specific parts of a graph with the methods <code>objects(), subjects(), predicates()</code>, etc. Look at the documentation section on <em>"<a href="https://rdflib.readthedocs.io/en/stable/intro_to_graphs.html">Navigating Graphs"</a></em> for the details. <br><br><strong>Your task:</strong> Write a Python program that prints out all triples in your graph for the subject URI corresponding to <tt>Joe</tt>.</p>
+<p><em>Notes: </em></p>
+<ul>
+<li>Experiment with <code>objects()</code>, <code>subjects()</code>, and <code>predicates()</code> methods to see different ways of accessing graph data.</li>
+<li>Ensure the URI for Joe is consistent with how you've represented it in Task 2.2.</li>
+<li>The SPARQL graph query language, which provides more sophisticated ways of querying graphs, will be covered in Lecture #4 and its corresponding lab.</li>
+</ul>
+<p> </p>
+<h4>Task #2.4 Merging Graphs</h4>
+<p>A powerful feature of knowledge graphs is that we can <em>merge</em> different graphs together, in order to connect and integrate knowledge from different sources. In this task, we will merge the graph you created above with the knowledge about Concordia from DBpedia.<br><br>RDFLib supports various graph operations, like union (addition), intersection, difference (subtraction) and XOR. Like before, we first import RDFLib and create a graph instance, which we'll call <code>g1</code>:</p>
+<p><code>import rdflib<br># Create graph g1<br>g1 = rdflib.Graph()</code></p>
+<p>Now, let's load information about Concordia University from Wikidata into our graph. We can parse the Wikidata graph by directly loading it from the following online knowledge base URI:</p>
+<p><code># Parse the Wikidata graph about Concordia (in Turtle format)<br>g1.parse("http://www.wikidata.org/entity/Q326342.ttl")</code></p>
+<p>To check the number of triples in our DBpedia graph about Concordia University, use the command below. The output should show a large number of triples, more than ~3500:</p>
+<p><code># Print the number of triples in the graph<br>print(len(g1))</code></p>
+<p>Similarly, load the graph your create above in Task 1 using the <code>g.parse()</code> function. To merge the two graphs (union), use the addition (+) operator. <br>Print out the merged graph using the <code>g.serialize()</code> function and verify that they were indeed merged using Concordia's URI.</p>
+<p>Note that you can now answer questions from this merged graph that were not possible to answer from each of them alone, for example, <em>“In which city is the university located that Joe is studying at?”</em>. Try running your code from Question 2.1 on this merged graph to see all the information you now have available. Then, write some triple patterns to print out the city where Joe is studying.</p>
+<p>You can also experiment with merging the data about Concordia from the DBpedia knowledge graph using:</p>
+<p><code># Parse the DBpedia graph about Concordia<br>g1.parse("https://dbpedia.org/resource/Concordia_University")</code></p>
+<p>This exercise serves as an introduction to the expansive capabilities of knowledge graphs in AI systems. By further exploring linked data, such as loading additional details about Montreal (Q340) from Wikidata, an autonomous agent can enhance its understanding of related concepts like the country in which the city is located.</p>
+<h4>Closing notes: Industrial Relevance of Knowledge Graphs</h4>
+<ol>
+<li>
+<p><strong>Enhanced Data Integration:</strong> In the business world, where companies often grapple with vast, diverse data sets, knowledge graphs play a crucial role in integrating this data cohesively. This integration allows for more effective data management, crucial for making informed decisions and streamlining operations across various departments.</p>
+</li>
+<li>
+<p><strong>Advanced Analytics and Insights:</strong> Knowledge graphs enable companies to delve deeper into analytics, offering richer insights into customer behavior, market trends, and operational efficiencies. These insights are invaluable for strategic decision-making, helping businesses stay ahead in competitive markets.</p>
+</li>
+<li>
+<p><strong>AI and Machine Learning Enhancement:</strong> For companies investing in AI and machine learning, knowledge graphs provide essential context and relational data, significantly improving the accuracy of predictive models and algorithms. This enhancement is particularly vital in areas like natural language processing and intelligent assistants, key drivers of innovation and efficiency in many industries.</p>
+</li>
+</ol>
+<p>Incorporating knowledge graphs allows businesses to manage and leverage their data more effectively, leading to smarter strategies, enhanced customer experiences, and a competitive edge in today's data-driven economy.</p>
+<p><em>That's all for this lab!</em></p>
