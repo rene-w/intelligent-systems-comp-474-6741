@@ -1,0 +1,10 @@
+@prefix user: <http://example.org/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+user:joe
+    foaf:knows user:jane ;
+    user:studiesAt <http://www.wikidata.org/entity/Q326342> ;
+    foaf:mbox <mailto:joe@example.com> .
+
+user:jane
+    user:studiesAt <http://www.wikidata.org/entity/Q201492> .

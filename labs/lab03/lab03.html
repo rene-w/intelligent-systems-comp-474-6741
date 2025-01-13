@@ -1,0 +1,120 @@
+<h2>Lab Session #03</h2>
+<h3>Introduction</h3>
+<p>Welcome to the third lab in our series. After covering the basics of the Resource Description Framework (RDF) and RDFlib implementation in our previous session, this lab focuses on enhancing Knowledge Graphs with RDF Schema (RDFS). RDFS extends RDF by providing mechanisms to describe the <em>semantics</em> of properties and classes in RDF data. This includes specifying domains and ranges for properties, creating hierarchies of classes, and adding semantic relationships between entities.</p>
+<p>By integrating RDFS, we aim to structure and define our data more effectively, allowing for improved data interoperability, reasoning, and querying capabilities. The addition of a semantic layer through RDFS enables the creation of more sophisticated and semantically rich Knowledge Graphs, facilitating better data understanding and use in applications ranging from data integration to information retrieval.</p>
+<p>In this lab, we will explore the practical application of RDFS in building and querying enhanced Knowledge Graphs, highlighting its importance in semantic web technologies and its role in elevating the expressiveness and utility of our data structures.</p>
+<p><!-- pagebreak --></p>
+<h3><a id="lab2notes"></a>Notes on Lab #02</h3>
+<p>Generally, if you did not finish any of the tasks from the previous week(s), make sure you catch up with any remaining tasks, since some of the new tasks build on previous work.</p>
+<h4>Solutions Task #02.1</h4>
+<p>Here's an example solution: <a href="mytriples.ttl">mytriples.ttl</a>. You can visualize it with the mentioned online tools, it should look like this:</p>
+<p><img class="img-fluid align-top" style="display: block; margin-left: auto; margin-right: auto;" src="graph.png" alt="Triples visualized as graph" width="1001" height="506"></p>
+<p>This is how to read it:</p>
+<ul>
+<li><code>@prefix</code> is used to define the namespaces used in the document. <code>user:</code> is the prefix for an example organization, and <code>foaf:</code> is the prefix for the Friend of a Friend (FOAF) vocabulary (we will cover it this lab).</li>
+<li><code>foaf:knows</code> is used from the FOAF vocabulary to denote that the person identified by <code>user:joe</code> knows the person identified by <code>user:jane</code>.</li>
+<li><code>user:studiesAt</code> is a placeholder property to indicate where the person identified by <code>user:joe</code> studies. Here, it points to the entity at Wikidata with the identifier Q326342, which represents Concordia University.</li>
+<li><code>foaf:mbox</code> is used from the FOAF vocabulary to denote the mailbox (email) of the person identified by <code>user:joe</code>. The URI for the email address follows the <code>mailto:</code> scheme.</li>
+<li><code>user:studiesAt</code> is also used to indicate where the person identified by <code>user:jane</code> studies, pointing to the entity at Wikidata with the identifier Q201492, which would represent McGill University.</li>
+<li>The Turtle file ends with a period (<code>.</code>) which is used to terminate each set of statements about a subject.</li>
+</ul>
+<p>Note that we did not add a triple about Concordia being located in Montreal, since this triple is already available under the URI http://www.wikidata.org/<br>entity/Q326342: &lt;http://www.wikidata.org/entity/Property:P131&gt;<br>&lt;http://www.wikidata.org/entity/Q340&gt;.</p>
+<h4>Solutions Task #02-2.2</h4>
+<p>Here is a possible solution: <a href="task2_2.py">task2_2.py</a>.</p>
+<p>Note: if your output looks like this (a byte string, indicated by a leading b’):</p>
+<p><code>b'@prefix foaf: &lt;http://xmlns.com/foaf/0.1/&gt; .\n@prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .\n@prefix user: &lt;http://example.org/&gt; .\n\nuser:joe a foaf:Person ;\n rdfs:label "Joe" ;\n foaf:knows user:jane .\n\n'</code></p>
+<p>you’re using Python 3.7 or earlier; in this case, print the graph with:</p>
+<p><code>print(g.serialize(format='turtle').decode("utf-8"))</code></p>
+<h4>Solutions Task #02-2.3</h4>
+<p>Here are a few examples for pattern matching and graph navigation:</p>
+<p><code># Find the subject for a given predicate and object<br>name = list(g.subjects(RDFS.label, Literal('Joe')))<br>if name:<br>    print(name[0]) # prints the subject node, i.e., http://example.org/joe<br>else:<br>    print("No subject found with label 'Joe'")<br><br># Find the list of all predicates and objects for a given subject<br>joe_details = g.predicate_objects(rdflib.term.URIRef('http://example.org/joe'))<br># Iterate through each predicate-object pair and print them<br>for pred, obj in joe_details:<br>    print(pred, obj)</code></p>
+<p>Note: Here, <code>None</code> is treated as a wildcard.</p>
+<h4>Solutions Task #02-2.4</h4>
+<p>Here is a possible solution: <a href="task2_4.py">task2_4.py</a>.</p>
+<p><!-- pagebreak --></p>
+<h3><a id="t1"></a>Task #1: FOAF</h3>
+<p>In this task, you will embark on creating a Knowledge Graph about yourself using the <a href="http://xmlns.com/foaf/spec/">Friend-of-a-Friend</a> (FOAF) vocabulary.</p>
+<h4>Introduction</h4>
+<p>FOAF is a fundamental vocabulary within the Semantic Web for describing people, their activities, and their relations to other people and objects. In this context, <em>'vocabulary'</em> refers to a set of predefined terms and relationships used to describe and structure information in a way that is both universally understandable and machine-readable, facilitating the sharing and linking of data across different systems.</p>
+<p>By utilizing FOAF, you will practice structuring personal information within a Knowledge Graph, leveraging standard vocabularies to ensure interoperability and semantic richness. This exercise is pivotal in understanding how to represent real-world entities and relationships in a machine-readable format, a crucial skill in data science and semantic web technologies.</p>
+<h4>Task Details</h4>
+<p>Your first task is to create a knowledge graph describing yourself, using the <a href="http://xmlns.com/foaf/spec/">Friend-of-a-Friend</a> (FOAF) vocabulary:</p>
+<ol>
+<li>Add yourself as a <i>Person</i>.</li>
+<li>Add several properties, such as first name, last name, age, and mbox (email).</li>
+<li>Validate your graph using the tools you used in the previous lab.</li>
+</ol>
+<p><i>Note:</i> As you delve into the FOAF vocabulary, you may notice references to <code>owl:</code> (the <i>Web Ontology Language</i>). OWL provides a more expressive framework than RDFS for describing ontologies. We will explore some aspects of OWL in future lectures, which will further enhance your ability to create detailed and nuanced knowledge representations.</p>
+<p>Ensure your graph accurately reflects the FOAF schema, using correct property names and data types for each entry. As learned in the previous lab, validate your triples to ensure their accuracy and adherence to the RDF standard. Then, attempt to load your new graph into the test programs developed with RDFlib in the previous lab, integrating what you've learned about RDF and RDFlib with the new semantic layer provided by FOAF.</p>
+<h4>Notes</h4>
+<p>Upon completing this task, you should have a deeper understanding of how to represent individual profiles within a knowledge graph context using the FOAF vocabulary. This exercise has not only reinforced your skills in RDF and Knowledge Graph construction but has also introduced you to the vital concept of semantic interoperability through standardized vocabularies.</p>
+<p>An important observation from this task is that the semantics—meaning the properties and relationships—are represented in triples, just as the data itself. This uniform structure facilitates the integration and querying of data across diverse sources.</p>
+<p>Interoperability, in this context, refers to the ability of different systems and applications to understand and use the data. Concretely, it means that someone else, or another application, can now understand the triples describing our person. This capability is crucial for interconnecting data across platforms, such as linking social network profiles or aggregating information from multiple sources to create a more comprehensive understanding of an individual or concept.</p>
+<p>By creating a FOAF profile, you've taken a significant step towards grasping the importance of standardized vocabularies in achieving semantic interoperability. Reflect on how the properties and classes used in FOAF can be applied or extended to other domains, enhancing the ability to interconnect and make sense of social network data and beyond in your future work.</p>
+<p> </p>
+<h3><a id="t2"></a>Task #2: Creating a Vocabulary using RDFS</h3>
+<p>Your next task involves developing a <em>new</em> vocabulary using RDF Schema (RDFS): the <i>Friends-of-Concordia-University</i> (FOCU) schema. This task is designed to give you hands-on experience in defining and structuring a domain-specific vocabulary, which is crucial for creating semantically rich and interoperable knowledge graphs. By defining classes and properties specific to the educational context of Concordia University, you'll learn how to extend existing vocabularies and create meaningful connections between different entities.</p>
+<h4>Task Details</h4>
+<p>This task requires you to create a new vocabulary that can express specific relationships and entities within the Concordia University community. Use RDFS to define the following:</p>
+<ol>
+<li>Classes for <tt>Student</tt> and <tt>Professor</tt>, both subclasses of <tt>foaf:Person</tt>.</li>
+<li>A <tt>University</tt> class, a subclass of <tt>foaf:Organization</tt>.</li>
+<li>A property to describe that a <tt>Student</tt> <i>is enrolled at</i> a <tt>University</tt>.</li>
+<li>A property to indicate that a <tt>Professor</tt> <i>teaches</i> <tt>Student</tt>s.</li>
+</ol>
+<p>Start with the provided template: <a href="https://moodle.concordia.ca/moodle/draftfile.php/213422/user/draft/873854350/focu.ttl?time=1579993723557">focu.ttl</a>. Then, fill in the placeholders in <tt>[square brackets]</tt> to perform the following steps:</p>
+<ol>
+<li>Add your RDFS triples for the four definitions above.</li>
+<li>Validate your RDF schema to ensure its correctness.</li>
+<li>Integrate the triples from Task #1, indicating your status as a student at Concordia using your newly defined FOCU vocabulary.</li>
+<li>Validate and visualize your extended graph to ensure coherence and accuracy.</li>
+</ol>
+<h4>Notes</h4>
+<p>Some notes on this task:</p>
+<ul>
+<li>There are of course existing vocabularies for universities, students, etc. and in a real system you would not create a new vocabulary duplicating existing definitions. This is done here for exercise purposes, so that you see how to define a minimal, functional RDF Schema. The goal here was to learn how to create a tailored vocabulary for a specific domain.</li>
+<li>Using <code>focu.io</code> as the authority (domain name) is an educational simplification. In real-world scenarios, owning or controlling the domain name is essential for publishing authoritative vocabularies.</li>
+<li>The template above defines <code>focudata:</code> as the namespace for the triples describing people; you could use another namespace here, like the <code><tt>example.org</tt></code> you've used before. The point here is that it is not good practice to mix <em>schema</em> information (in this case your FOCU schema) with <em>data</em> described using this schema into the same namespace. In other words, you want to be able to load the schema and the data separately from each other into a system. This separation enhances data management and schema evolution over time.</li>
+<li>Note how you relate the novel, "unknown" (for outsiders) <em>University</em> definition to an existing class in FOAF. This is an example of a self-describing dataset as mentioned in Lecture #3. You could add more relations to other vocabularies, such as the <a href="https://www.dbpedia.org/resources/ontology/" target="_blank" rel="noopener">DBpedia Ontology</a> (DBO), to aid automated agents in analyzing your terms. Connecting to established vocabularies like DBO enhances the discoverability and semantic richness of your data.</li>
+</ul>
+<p>By completing this task, you have not only learned how to design a domain-specific vocabulary using RDF Schema (RDFS) but also how to apply this vocabulary to represent real-world entities and relationships within a knowledge graph. This skill set is fundamental in the field of semantic web technologies, enabling the creation of structured, machine-readable data that supports complex data integration, querying, and reasoning processes.</p>
+<p>The ability to extend existing vocabularies and define new terms is critical in developing applications that require a deep understanding of domain-specific knowledge. For instance, in AI-driven recommendation systems, accurately modeling the relationships between users, products, and preferences can significantly enhance the quality of recommendations. Similarly, in natural language processing (NLP) applications, well-defined vocabularies facilitate entity recognition and relationship extraction, enabling more sophisticated text analysis and understanding.</p>
+<p>Moreover, the principles you've practiced here are directly applicable to the development of ontologies in knowledge-based systems, such as those used in healthcare for diagnosing diseases or in e-commerce for managing product information. By designing and utilizing vocabularies, you contribute to the foundation of interoperable and semantically rich data ecosystems that AI technologies leverage for advanced decision-making, predictive analytics, and personalized user experiences. Furthermore, these skills enable you to contribute to and benefit from collaborative data sharing initiatives, fostering a more connected and intelligent web ecosystem.</p>
+<p> </p>
+<h3><a id="t3"></a>Task #3: Your First Intelligent Agent</h3>
+<p>In this task, you will take a significant step forward by integrating your RDFlib program with real-world data sources to create your first intelligent agent. Using the FOAF+FOCU vocabulary triples you defined earlier, you will develop a program that can query and retrieve specific information about individuals within your knowledge graph. Furthermore, by merging this local graph with external data from DBpedia, your agent will gain the ability to provide enriched responses that include not only personal details but also geographical information about universities. This exercise will demonstrate the power of semantic web technologies in building interconnected, intelligent systems capable of complex queries and reasoning.</p>
+<h4>Task Details</h4>
+<p>Enhance your RDFlib program from the previous week to read the FOAF+FOCU triples about individuals you've created.</p>
+<h5>Step 1</h5>
+<p>The program should then prompt for a name and retrieve all available information from the graph for that individual. For instance, when searching for "Joe", the program will display details such as age and email:</p>
+<pre>Hello, I am your smart university agent. Who are you looking for?<br>&gt; Joe<br><br>Joe is 22 years old and has the email address joe@example.com.</pre>
+<h5>Step 2</h5>
+<p>Moreover, if the person is affiliated with a university, your agent will also identify and report the city and country of the institution by merging your graph with data obtained from DBpedia. This capability allows for a richer interaction, providing comprehensive information about the person and their university:</p>
+<pre>Hello, I am your smart university agent. Who are you looking for?<br>&gt; Jane<br><br>Jane is 24 years old and studies at Concordia University, which is located in Montreal, Canada.</pre>
+<p><strong>Note: </strong>Since the FOAF/FOCU triples might not include city/country details for the universities, you'll need to integrate your graph with information from DBpedia to provide these answers.</p>
+<p><strong>Hint:</strong> Since here we’re using DBpedia to retrieve additional triples, make sure the students in your knowledge base are correctly linked to, e.g., <a href="http://dbpedia.org/resource/Concordia_University" target="_blank" rel="noopener">http://dbpedia.org/resource/Concordia_University</a>. Use the following namespace declaration:<br><code>DBP = Namespace("http://dbpedia.org/property/")</code><br>and find the correct property to use for the location in DBpedia.</p>
+<h5>Step 3</h5>
+<p>We’ll now make the AI even smarter, by also supporting the query “What is &lt;X&gt;”, where you retrieve triples about &lt;X&gt; from DBpedia, printing out the <tt>abstract</tt> information, e.g.:</p>
+<pre>Hello, I am your smart university agent. How can I help you?
+&gt; What is Concordia University?
+
+Concordia University (French: Université Concordia) is a public research university <br>located in Montreal, Quebec, Canada. Founded in 1974 following the merger of Loyola<br> College and Sir George Williams University, Concordia is one of the three universities<br>in Quebec where English is the primary language of instruction (the others being McGill<br>and Bishop’s). . . .
+</pre>
+<p>To implement this, you can start by checking whether a “What is &lt;X&gt;” pattern is present in the user’s input:</p>
+<p><code># Define pattern</code><br><code>pattern = "What is"</code><br><br><code>if pattern in user_input:</code><br><code>  # Extract the entity name after the pattern,</code><br><code>  # handling potential trailing question mark</code><br><code>  entity_name = user_input.split(pattern, 1)[1].split("?", 1)[0].strip()</code></p>
+<p>Implement the following two steps:</p>
+<ol>
+<li>Create a DBpedia URI based on the input subject &lt;X&gt; and load the graph<br>into your program. For example, if &lt;X&gt; is <em>Concordia University</em>, create<br>the URI http://dbpedia.org/resource/C<em>oncordia_University </em>(we will later learn more sophisticated ways of linking text with knowledge graph nodes).</li>
+<li>Use the RDFLib functions as before to navigate and retrieve the required<br>output from the graph. You’ll need to find the right property to use;<br>generally, you can find an abstract for most entries in DBpedia (next week, we'll learn a more general way of extracting knowledge from graphs using SPARQL queries).</li>
+</ol>
+<p>Feel free to enhance your agent's responses with additional university-related information if desired. Ensure your program gracefully handles situations where no data is found on DBpedia for a given query, providing a user-friendly message or suggesting alternative queries.</p>
+<h4>Notes</h4>
+<p>By completing this task, you've ventured into the realm of intelligent agents, using knowledge graph data to answer complex queries. This exercise illustrates the practical application of RDF and RDFS in real-world scenarios, showcasing how data from different sources can be integrated to create knowledge-rich applications. Such agents are foundational in developing AI applications like virtual assistants, educational tools, and personalized recommendation systems. Notice how similar this exercise is to the functionality of AI assistants like Google Assistant, Siri, or Alexa: By querying DBpedia for ‘What is &lt;X&gt;?’, you’re emulating their technique of using knowledge graphs to provide informative answers. This process, known as <em>grounding</em>, is a departure from the pattern-matching approach seen in earlier chatbots like Eliza, demonstrating a more advanced and context-aware method of responding to user queries.</p>
+<p>This task not only enhances your understanding of knowledge graph technologies but also prepares you for future explorations in AI, including the use of SPARQL for more sophisticated data retrieval and the integration of machine learning techniques, including large language models (LLMs), for even smarter agent behavior, covered later in this course.</p>
+<p> </p>
+<h4>Conclusions</h4>
+<p>This lab has equipped you with practical experience in constructing and querying Knowledge Graphs using RDF, RDFS, and integrating external knowledge sources like DBpedia. The exercises demonstrated the critical role of Knowledge Graphs in enhancing information retrieval, interoperability, and decision-making processes across a range of applications, from academic research to industry solutions.</p>
+<p>As you advance through this course, the skills acquired here form a solid foundation for upcoming topics. The introduction to Knowledge Graphs in these early weeks prepares you for more intricate subjects, including advanced querying techniques with SPARQL, the integration of machine learning to analyze and predict based on graph data, and considerations of ethical implications in deploying AI technologies.</p>
+<p>In the subsequent lectures and labs of this course, as well as the course project, you will continue to build on these foundational skills. The focus will gradually shift towards exploring more sophisticated challenges and opportunities within Knowledge Graphs and AI, equipping you with the technical expertise to innovate and solve complex problems in the field of computer science.</p>
+<p> </p>
+<p><em>That's all for this lab!</em></p>
