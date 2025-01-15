@@ -1,6 +1,6 @@
 # Intelligent Systems Labs
 These are the HTML source code files for the lab exercises of the Winter 2024 version of the Intelligent Systems course at Concordia (COMP 474/6741). 
-Note that these were not used stand-alone, but integrated into the course's Moodle site.
+Note that these were not used stand-alone, but integrated into the course's Moodle site; you can copy-and-paste the raw HTML code into Moodle's content editor for a page after switching to the "Source Code" in the "View" menu.
 
 ## Lab Content
 For the 12-week course, there were 11 labs scheduled in total (labs started in the second week), each lab lasting 2 hours and managed by a lab instructor (teaching assistant).
