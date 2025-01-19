@@ -1,6 +1,8 @@
-# Intelligent Systems Labs (COMP 474/6741) - Winter 2023/24
+# Intelligent Systems (COMP 474/6741) - Winter 2023/24
 
-This repository contains the lab materials for the Intelligent Systems course (COMP 474/6741) offered during the Winter 2023/24 Academic Year at Concordia University.
+This repository contains some of the course materials for the Intelligent Systems course (COMP 474/6741) offered during the Winter 2023/24 Academic Year at Concordia University.
+In particular, the lab exercises and lecture worksheets are available here. These are provided for instructors teaching new versions of this course starting in 2025.
+
 
 ## License
 
