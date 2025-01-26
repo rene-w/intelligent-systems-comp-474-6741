@@ -1,0 +1,261 @@
+<h2>Lab Session #09</h2>
+<h3>Introduction</h3>
+<p>Welcome to Lab #09. This lab, we'll continue with NLP and learn how to build a <em>Text Mining</em> system with spaCy's <em>matcher</em> for rule-based named entity (NE) extraction. On the Chatbot front, you'll learn how to build an industry-strength bot using the <em>Rasa</em> framework.</p>
+<p><img class="img-fluid align-top" style="display: block; margin-left: auto; margin-right: auto;" src="rasa.png" alt="Rasa screenshot" width="1109" height="568"></p>
+<h3>Follow-up Lab #08</h3>
+<p>Following are some sample scripts for last lab's questions:</p>
+<p>Task #1: Here is a <a href="spacylabex.py">sample script</a> for the spaCy exercise.</p>
+<p>Task #2: Here's some <a href="question-classification.py">example code</a> for question classification with machine learning using linguistic features extracted with spaCy NLP.</p>
+<h3>Task #1: Text Mining</h3>
+<p>The aim for this week is to build a basic <em>Text Mining (TM) </em>system. <a href="https://monkeylearn.com/text-mining/#:~:text=Text%20mining%20(also%20known%20as,language%20and%20process%20it%20automatically.">Text mining</a> represents the broader discipline of deriving structured information from unstructured text. This process involves converting natural language documents into analyzable data, which could be formatted for various uses such as CSV exports, database integration, or knowledge graph development. Within this domain, <em><a href="https://en.wikipedia.org/wiki/Information_extraction">Information Extraction (IE)</a></em> is a major application, targeting the extraction of specific data points like named entities, connections, and significant occurrences from texts.</p>
+<p>IE's practical applications are vast and varied, serving critical roles across multiple sectors. In business intelligence, it helps uncover market trends from customer feedback; in software development, it enhances bug report analysis with precision; and in healthcare, it facilitates the extraction of key information from patient records. By efficiently parsing through text data to identify relevant information, techniques learned in TM and IE equip you with the skills to tackle real-world challenges, such as analyzing social media sentiment, uncovering <a href="https://www.newscatcherapi.com/blog/spacy-matcher-mining-financial-stock-news">financial indicators from news articles</a>, or spotting trends in scientific research.</p>
+<h4>NLP Pipelines</h4>
+<p>As mentioned in the lecture, spaCy's models come equipped with a default pipeline that you can then modify and extend. Remember that in this context, a "pipeline" refers to a sequence of processing steps through which text data is passed, each step applying a different layer of analysis or transformation, starting from raw text to the extraction of structured information. Start by exploring the <a href="https://spacy.io/usage/processing-pipelines">spaCy Pipelines documentation</a> to understand the components that are executed in a default pipeline. You can view the default pipeline with the following code snippet:</p>
+<pre>print(nlp.pipe_names)</pre>
+<p>Now, let's try <a href="https://spacy.io/usage/processing-pipelines#custom-components-simple">adding a simple custom component</a> to the pipeline to count the number of title-cased tokens within a text and print them out in the console:</p>
+<pre>import spacy
+from spacy.language import Language
+
+@Language.component("custom_title_counter")
+def custom_title_counter(doc):
+    title_count = sum(1 for token in doc if token.is_title)
+    print(f"This document has {title_count} title-cased tokens.")
+    return doc</pre>
+<p>Once you've created your pipeline component to perform the desired function, add it to your <tt>nlp</tt> pipeline as the last module.</p>
+<p>Print the pipeline components in your console to ensure your custom component is added to the <tt>nlp</tt> pipeline. Then, process the following paragraph with your new pipeline and observe the output of your custom component:</p>
+<pre>text = """Concordia University (French: Université Concordia; commonly referred to as Concordia) is a public comprehensive research university located in Montreal, Quebec, Canada. Founded in 1974 following the merger of Loyola College and Sir George Williams University, Concordia is one of the three universities in Quebec where English is the primary language of instruction (the others being McGill University and Bishops University). As of the 2018–19 academic year, there were 46,829 students enrolled in credit courses at Concordia, making the university among the largest in Canada by enrollment. The university has two campuses, set approximately 7 kilometres (4 miles) apart: Sir George Williams Campus is the main campus, located in Downtown Montreal in an area known as Quartier Concordia; and Loyola Campus in the residential district of Notre-Dame-de-Grâce. """</pre>
+<h4>Information Extraction</h4>
+<p>The next step involves adding an information extraction component to our pipeline, focusing initially on extracting <em><a href="https://www.datacamp.com/blog/what-is-named-entity-recognition-ner">named entities (NEs)</a></em>. Similar to the entities extracted using the default model, we can approach NE extraction through (1) machine learning or (2) a rule-based system. Although machine learning often yields more accurate results, rule-based systems offer significant value in early-stage experiments, demo development, prototyping, and the creation of manual annotations required for machine learning. For certain predictable entities like URLs, IP addresses, and phone numbers, rule-based identification is straightforward and avoids the unnecessary complexity of machine learning approaches.</p>
+<h5>Building the Matcher Component</h5>
+<p>Our initial experiments will center on developing a <em>rule-based</em> IE system. Contrary to relying solely on regular expressions for text matching, we aim to craft more generalized rules by leveraging features extracted by previous components, such as lemmas and POS tags, that we've examined in the previous lab.</p>
+<p>Begin by exploring the spaCy documentation for <a href="https://spacy.io/usage/rule-based-matching">rule-based matching:</a> Your objective is to devise rules capable of identifying organizational units within a university, such as faculties or departments, as they appear on websites or in scientific publications. Instead of rigidly matching every possible name combination (e.g., "Department of Mathematics and Computer Science" or "Faculty for Extraterrestrial Space Travel"), your rules should dynamically combine unit names ("Faculty", "Department", "School", ...) with POS tags, particularly nouns. To find applicable POS tags, refer to the documention of the model you're using, like <a href="https://spacy.io/models/en#en_core_web_sm">en_core_web_sm</a> used here.</p>
+<p>After forming some preliminary rules, test them with the interactive <a href="https://explosion.ai/demos/matcher">Rule-based Matcher Explorer</a> introduced in the lecture.</p>
+<p>Following the exploration, let's implement these rules in Python:</p>
+<pre>import spacy
+from spacy.matcher import Matcher
+nlp = spacy.load("en_core_web_sm")
+matcher = Matcher(nlp.vocab)</pre>
+<p>Translate the pattern you've refined in the Rule-based Matcher Explorer into the following code snippet:</p>
+<pre>pattern = #Pattern from Rule-based Matcher Explorer</pre>
+<p>Add your pattern and a corresponding label to the matcher object:</p>
+<pre>matcher.add("UNI_IDENTIFIER", [pattern])</pre>
+<p>With your <tt>nlp</tt> pipeline ready, process the specified text. Then, extract and print the matches identified by your pattern:</p>
+<pre>doc = nlp(text)  # Ensure you've defined the 'text' variable with your target text
+matches = matcher(doc)
+
+for match_id, start, end in matches:
+    string_id = nlp.vocab.strings[match_id]  # String representation
+    span = doc[start:end]  # Matched span
+    print("Match found:", string_id, span.text, "at positions:", start, end)</pre>
+<p>Assess the outcomes from your Python code against those from the Matcher Explorer. Experiment with varying patterns to refine your entity extraction capabilities.</p>
+<h5>Integrating the Matcher into the NLP Pipeline</h5>
+<p>Having developed a rule-based information extraction component, our next step is to integrate this matcher into the spaCy processing pipeline. This integration allows for seamless processing of documents, where named entities are identified automatically as part of the pipeline's workflow. Such a setup mirrors real-world text mining systems, such as the <a href="https://emm.newsbrief.eu/NewsBrief/clusteredition/en/latest.html">EMM NewsExplorer</a> and <a href="https://medisys.newsbrief.eu/medisys/clusteredition/en/24hrs.html">MEDISYS</a> systems you've seen in the lecture, which continuously process incoming documents to extract new information and present them through a web interface.</p>
+<p>The inclusion of our matcher into the pipeline not only streamlines the extraction process but also sets the stage for scalable text mining solutions. </p>
+<p>Here's how to integrate your custom matcher into the pipeline:</p>
+<pre>from spacy.language import Language
+
+@Language.factory("custom_matcher")
+def create_matcher(nlp, name):
+    matcher = Matcher(nlp.vocab)
+    # Add patterns that were effective in the Rule-based Matcher Explorer
+    matcher.add("uni_identifier", [pattern])
+    return matcher
+
+nlp.add_pipe("custom_matcher", last=True)</pre>
+<p>This code snippet registers your matcher as a component in the pipeline, making it an integral part of document processing. Now, to apply this enhanced pipeline across multiple documents.</p>
+<h5>Processing Documents in Bulk</h5>
+<p>Let’s automate the process of reading documents from a directory, applying our pipeline, and capturing the detected entities. This mirrors the functionality of extensive text mining systems, which must handle large datasets efficiently.</p>
+<p>Below is a simple program outline for performing these tasks, culminating in the output of detected entities alongside their corresponding document filenames into a CSV file:</p>
+<pre>import spacy
+import csv
+import os
+
+nlp = spacy.load("en_core_web_sm")  # Load the model and your custom pipeline
+nlp.add_pipe("custom_matcher", last=True)
+
+directory_path = 'path/to/your/documents'
+csv_file = open('detected_entities.csv', 'w', newline='')
+csv_writer = csv.writer(csv_file)
+csv_writer.writerow(["Document Name", "Entities"])
+
+for filename in os.listdir(directory_path):
+    if filename.endswith(".txt"):
+        doc = nlp(open(os.path.join(directory_path, filename), 'r').read())
+        entities = [ent.text for ent in doc.ents]
+        csv_writer.writerow([filename, ', '.join(entities)])
+
+csv_file.close()</pre>
+<p>This program processes each document in the specified directory, leveraging your enhanced pipeline to detect entities. By writing out the results to a CSV file, we get a tangible example of how text mining can be applied in a scalable, real-world context; similarly, you could export them to a database or, with further processing, into a knowledge graph.</p>
+<p>Incorporating the matcher into your pipeline is your first step towards building real-world text mining systems. Think of it as setting up your own mini version of big-league operations, but with the agility to tailor it to specific needs. By extracting entities like company names for market analysis, geographical locations for mapping news events, or even product names from customer reviews, you're laying the groundwork for a variety of applications. These entities could feed into a database for real-time analytics, helping businesses understand market movements or consumer trends.</p>
+<h4>Using these Methods in Real Life(TM)</h4>
+<div class="flex flex-grow flex-col max-w-full">
+<div class="min-h-[20px] text-message flex flex-col items-start gap-3 whitespace-pre-wrap break-words [.text-message+&amp;]:mt-5 overflow-x-auto" data-message-author-role="assistant" data-message-id="36acbd94-9780-4c6e-b484-755fc6a11415">
+<div class="markdown prose w-full break-words dark:prose-invert light">
+<p>Imagine you've just started working at a company swamped with documents, where employees spend countless hours identifying customer feedback themes to enhance product development. Armed with the knowledge from this lab, you recognize an opportunity to streamline this process.</p>
+<p>You could begin by proposing the development of a text mining system, similar to what you've constructed in this lab, tailored to automatically extract specific entities like customer sentiments (how to identify these will come in one of the next labs), product names, and issues from these documents. By leveraging <em>spaCy</em> and the custom pipeline enhancements you've learned to implement, including a matcher for named entity recognition, you set the stage for a more efficient analysis.</p>
+<p>Next, you'd gather a dataset of documents for initial testing, apply your pipeline to extract relevant entities, and then present these findings in a structured format, such as a CSV file, to stakeholders. Demonstrating the potential time savings and increased accuracy in identifying key customer feedback themes could garner support for further development.</p>
+<p>With buy-in secured, the next steps would involve scaling the solution, perhaps by integrating it with the company's existing document management systems, and continuously training the model on new data to improve its accuracy. Over time, this text mining system could evolve into a sophisticated AI tool, providing real-time insights into customer feedback, driving product development, and significantly reducing the manual effort previously required.</p>
+<p>This approach not only showcases your initiative and technical prowess but also positions you as a forward-thinking problem solver capable of leveraging AI to address practical business challenges.</p>
+</div>
+</div>
+</div>
+<h3>Task #2: Building Your Own Chatbot with Rasa</h3>
+<p>After exploring the fundamentals of chatbots in the previous labs, including pattern matching with AIML and implementing an IR-based bot using tf-idf and cosine similarity, it's time to advance our toolkit. Our focus now shifts to constructing a chatbot capable of standing its ground in the real world, employing the sophisticated technologies provided by <em><a href="https://rasa.com/">Rasa</a>.</em></p>
+<p>Transitioning from simpler chatbot technologies to Rasa opens up a realm of possibilities. Rasa is an open-source machine learning framework, designed specifically for building conversational AI. It differs from previous tools by offering a more nuanced understanding of user inputs and managing dialogues in a way that mimics human conversation closely. This enhancement allows for the creation of chatbots that can handle complex conversations, learn from interactions, and integrate seamlessly with various messaging platforms.</p>
+<p>Rasa's ecosystem comprises two major components:</p>
+<ol>
+<li><strong>Rasa NLU:</strong> Focuses on understanding the user's intent and extracting entities from the conversation.</li>
+<li><strong>Rasa Core:</strong> Manages the conversation flow, deciding on the next best response based on the conversation history and the current user input.</li>
+</ol>
+<p>One of Rasa’s key advantages is its flexibility and extensibility, which make it suitable for everything from simple Q&amp;A bots to sophisticated virtual assistants capable of complex transactions. Its use spans various industries, from finance and healthcare to customer service and entertainment, showcasing its versatility.</p>
+<p>Rasa is freely available under an open-source license, allowing for modification, distribution, and use in both commercial and non-commercial projects. For projects requiring advanced features or support, Rasa offers commercial services through Rasa Enterprise, which provides additional tools for deploying, scaling, and managing your chatbots.</p>
+<p>For a deeper dive into Rasa and how to get started, visit their <a href="https://rasa.com/docs/rasa/">official documentation</a> and check out their <a href="https://github.com/RasaHQ/rasa">GitHub repository</a>. There are many interesting articles about Rasa available online; here are two to get you started: <a href="https://www.machinelearningplus.com/nlp/chatbot-with-rasa-and-spacy/">Building chatbot with Rasa and spaCy</a> and <a href="https://towardsdatascience.com/create-chatbot-using-rasa-part-1-67f68e89ddad">Create Chatbot using Rasa Part-1</a>.</p>
+<p>This session will guide you through utilizing Rasa to develop a chatbot that not only answers questions but can engage in meaningful dialogue, providing a significant leap forward from the capabilities of previous lab exercises. By the end of this task, you'll have a prototype ready to be refined into a deployable solution for a wide range of applications.</p>
+<p>Let's now get our hands dirty with some technical work.</p>
+<h4>Installing Rasa</h4>
+<p>To <a href="https://rasa.com/docs/rasa/installation/installing-rasa-open-source/">install Rasa Open Source</a>, it's recommended to use <code>pip</code> within a virtual environment. Rasa supports Python 3.7, 3.8, 3.9, and 3.10. Since Rasa's installation also includes <em><a href="https://www.tensorflow.org/">TensorFlow</a>,</em> creating a virtual environment for your Rasa project is advisable to manage dependencies effectively:</p>
+<p>Using Conda:</p>
+<pre>conda create -n rasa python=3.8<br>conda activate rasa<br>pip install rasa</pre>
+<p>Using Python VirtualEnv:</p>
+<pre>python3 -m venv rasa_env<br>source rasa_env/bin/activate<br>pip install rasa</pre>
+<p>After installing Rasa, you can initiate a new project and enter its interactive setup:</p>
+<pre>rasa init</pre>
+<p>If the installation was successful, you'll be prompted to choose a directory for your new project. You can specify a path or simply press enter to create the project in the current directory. Follow the interactive guide and keep pressing enter until you're prompted to test the chatbot in the console. Try typing "Hello" to see how the bot responds.</p>
+<pre>2024-03-24 17:28:06 INFO     root  - Rasa server is up and running.
+Bot loaded. Type a message and press enter (use '/stop' to exit):
+Your input -&gt;  Hi bot!
+Hey! How are you?
+Your input -&gt;  Great, it's another lab day!
+Great, carry on!
+Your input -&gt; /stop
+</pre>
+<h4>Rasa Overview</h4>
+<p>After exploring the initial chatbot functionality, let's dive deeper into the structure of a Rasa project. Navigate to the folder created during the <code>rasa init</code> step to find several important files crucial for your chatbot's development:</p>
+<ul>
+<li><strong>data/nlu.yml:</strong> Houses your Natural Language Understanding (NLU) training data, where you define <a href="https://rasa.com/docs/rasa/glossary#intent">intents</a> and their corresponding user utterances. This file is essential for teaching your bot to recognize the user's intentions.</li>
+<li><strong>data/stories.yml:</strong> Contains <a href="https://rasa.com/docs/rasa/glossary#story">stories</a>, which are sample dialogues that teach the bot how to respond. These stories are used by Rasa Core to learn conversation flows and determine the next best action in a dialogue.</li>
+<li><strong>domain.yml:</strong> Defines the chatbot's domain, listing all the intents, entities, slots, responses, and custom actions the assistant understands and can perform. Think of it as the blueprint of your assistant's capabilities.</li>
+<li><strong>actions/actions.py:</strong> Contains code for your custom actions, enabling the bot to execute tasks beyond simple responses, such as fetching data from external APIs or databases.</li>
+</ul>
+<p>YAML (YAML Ain't Markup Language) is a human-readable data serialization format, used for configuration files and data exchange between languages, and <code>.yml</code> files are where this data is stored; you can check and validate your YAML syntax at <a href="https://yamlchecker.com/">YAMLChecker</a>.</p>
+<p>These files collectively form the backbone of your Rasa project, guiding the bot's understanding, decision-making process, and actions. By customizing and expanding these files, you'll enhance your bot's conversational abilities.</p>
+<h5>Creating Custom Chatbot Actions</h5>
+<p>Let's create a <em>custom action</em> to provide information about a person. For a quick overview of the process, check out <a href="https://bit.ly/3dBmFyj" target="_blank" rel="noopener">this YouTube video</a>.</p>
+<p><strong>Step 1:</strong> Add a new intent named <code>about_person</code> to the <code>nlu.yml</code> file and include examples to trigger this intent. Ensure your additions match the syntax of existing intents:</p>
+<pre>- intent: about_person
+  examples: |
+    - Who is he?
+    - Who is [Joe](person) ?
+    - Who is [Kate](person)?
+    - Who is [Harry](person)
+    - Tell me about him
+    - Tell me about
+    - Tell me about [Peter](person)
+    - Tell me about [Joe](person)
+    - Can you tell me about him?
+    - Can you tell me about [Jane](person)?
+    - Can you tell me about [Peter](person) ?
+    - Can you tell me about [Jonathan](person) ?
+    - Do you know [Alice](person) ?
+    - Tell me about [Jack](person) ?</pre>
+<p>in the above given example, Tokens within the square brackets, like <code>[Joe] [Peter]</code><em>, ...,</em> are examples of what instance we are interested in extracting and variables within round brackets, like <code>(person)</code> are known as <em>entities</em>, which function similar to variables to contain the value a user inputs (e.g., <code>person = "Joe"</code>).</p>
+<p><strong>Step 2:</strong> Update the <code>domain.yml</code> file to include the new <code>about_person</code> intent under the <code>intents</code> section.</p>
+<p><strong>Step 3:</strong> Register the <code>person</code> entity in the <code>domain.yml</code> file and define a <em>slot</em> of the same name to store this entity's value:</p>
+<pre>entities:
+  - person
+slots:
+  person:
+    type: text
+    initial_value: "unknown"
+    mappings:
+      - type: from_entity
+        entity: person</pre>
+<p><strong>Step 4:</strong> In the <code>actions/actions.py</code> file, define a custom action named <code>action_person_info</code> by modifying the default class template. This action will print a custom message about the person:</p>
+<pre>@rasa_sdk.Action
+class ActionPersonInfo(rasa_sdk.Action):
+    def name(self):
+        return "action_person_info"
+
+    def run(self, dispatcher, tracker, domain):
+        person_name = tracker.get_slot('person')
+        message = f"If you're asking about {person_name}, Best Human Ever!!! ;-)"
+        dispatcher.utter_message(text=message)
+        return []</pre>
+<p><strong>Step 5:</strong> Register your custom action in the <code>domain.yml</code> file under the <code>actions</code> section:</p>
+<pre>actions:
+  - action_person_info</pre>
+<p><strong>Step 6:</strong> Create a new story in <code>data/stories.yml</code> that includes the <code>about_person</code> intent and the <code>action_person_info</code> action:</p>
+<pre>- story: get person info
+  steps:
+    - intent: greet
+    - action: utter_greet
+    - intent: about_person
+    - action: action_person_info</pre>
+<p><strong>Step 7:</strong> Enable the action server by uncommenting or adding the following lines in the <code>endpoints.yml</code> file:</p>
+<pre>action_endpoint:
+  url: "http://localhost:5055/webhook"</pre>
+<p>Train your model, start the Rasa shell, and the action server in separate consoles (terminals). In the first console, run:</p>
+<pre>rasa train
+rasa shell</pre>
+<p>At the same, start the Rasa action server with the following command in the second console: </p>
+<pre>rasa run actions</pre>
+<p>Test your setup by asking <code>"Who is Joe?"</code> in the Rasa shell. You should receive a response like "<code>If you're asking about Joe, Best Human Ever!!!</code>"</p>
+<h5>How does this work?</h5>
+<p>Understanding the mechanics behind Rasa's handling of custom actions and its integration with <em>spaCy</em> illuminates how powerful and flexible conversational AI can become. When you run the <code>rasa run actions</code> command, you're essentially firing up a server dedicated to executing custom actions—like fetching data or processing user input beyond predefined responses.</p>
+<p>Rasa leverages <em>spaCy</em> for various NLP tasks, including entity recognition and intent classification, which are critical for understanding user inputs. Under the hood, when a user message comes in, Rasa's NLU component uses <em>spaCy</em> models to parse the text and extract meaningful information such as intents and entities. This process involves tokenization, part-of-speech tagging, and dependency parsing, among others, to grasp the sentence structure and meaning.</p>
+<p>In addition to spaCy, Rasa uses <em>TensorFlow</em> for building and training its machine learning models, particularly within the Rasa NLU and Rasa Core components. TensorFlow's flexibility and scalability allow Rasa to efficiently handle the training of models for intent classification and response prediction, enabling the bot to understand complex user queries and maintain coherent conversations. This deep learning framework plays a crucial role in processing the conversational data and learning from the interaction patterns defined in your training stories.</p>
+<p>For the intents and entities recognized, Rasa consults the trained dialogue management model to decide on the next best action, which could be a custom action defined in your <code>actions.py</code>. This decision-making is informed by the stories you've provided, teaching Rasa how conversations typically flow. When a custom action is triggered, it executes the code you've written—be it querying a database, calling an API, or in our simple example, crafting a personalized message about "Joe".</p>
+<p>The integration with spaCy and TensorFlow not only provides a robust foundation for language understanding and decision-making but also allows for the extension of Rasa's capabilities by utilizing custom spaCy models or adding spaCy components to the processing pipeline. This synergy enables developers to build sophisticated, scalable chatbots capable of handling real-world tasks and conversations.</p>
+<h5>Handling Out-of-Vocabulary Words</h5>
+<p>One of the challenges in natural language processing, including entity extraction in chatbots, is dealing with <em>Out-of-Vocabulary (OOV)</em> words. These are words that the user might input which were not present in the training data, and therefore, the model does not recognize them. In Rasa, if an entity is an OOV word, the system might default to using a preset value defined in the <code>domain.yml</code> file under slots, potentially leading to incorrect interpretations or responses.</p>
+<p>To mitigate this, Rasa offers several strategies, including the use of the <code>CountVectorsFeaturizer</code> component in your pipeline. This component can create dense vectors by considering the context of words, enabling the model to handle words it hasn't seen before more gracefully. It does this by breaking down sentences into known words and learning the context in which words appear. This context helps Rasa to make educated guesses about new words based on their similarity to known words in similar contexts.</p>
+<p>Integrating OOV strategies requires adjusting your NLU model's pipeline configuration and possibly extending your training data to include a wider variety of examples. For a more detailed guide on configuring your Rasa model to better handle OOV words and to learn about the specific parameters and capabilities of the <code>CountVectorsFeaturizer</code>, visit the official documentation of the <a href="https://rasa.com/docs/rasa/components/#countvectorsfeaturizer">Rasa Components: CountVectorsFeaturizer</a>.</p>
+<p>By implementing these strategies, you can significantly improve your chatbot's understanding and handling of user inputs, making your bot more robust and user-friendly.</p>
+<h5>Connecting to Your Knowledge Graph</h5>
+<p>Building on the custom actions developed in Rasa, you now have the opportunity to leverage the rich data stored in your knowledge graph. By integrating with <code>RDFlib</code> and executing SPARQL queries against a Fuseki server that set up in previous labs, you can extract detailed information to enrich your chatbot's responses. To connect to the Fuseki server, utilize the Python <code>requests</code> library within your custom action. Ensure your Fuseki server is active and accessible.</p>
+<p>In your custom action, you might craft a SPARQL query to fetch specific information based on the user's query. For instance, if a user asks about a person, the bot could retrieve biographical details, related projects, or recent publications from the knowledge graph. Here's a simplified example:</p>
+<pre>import requests
+
+def run(self, dispatcher, tracker, domain):
+    person_name = tracker.get_slot('person')
+    query = """
+    PREFIX dbo: &lt;http://dbpedia.org/ontology/&gt;
+    SELECT ?description WHERE {
+    ?person dbo:name '""" + person_name + """'@en .
+    ?person dbo:abstract ?description .
+    FILTER (lang(?description) = 'en')
+    }
+    LIMIT 1
+    """
+    response = requests.post('http://localhost:3030/dataset/query', data={'query': query})
+    description = response.json()['results']['bindings'][0]['description']['value']
+    dispatcher.utter_message(text=f"Here's what I found about {person_name}: {description}")
+</pre>
+<p>This integration enables your chatbot to not only fetch specific data points but also to contextualize and relay this information in a conversational manner. By processing SPARQL query results, your chatbot can construct responses that are both informative and engaging, turning raw data into meaningful dialogue.</p>
+<p>Beyond knowledge graphs, consider how other AI and NLP techniques could enhance your chatbot. For example, integrating Information Retrieval (IR) systems could expand the bot's ability to handle broad queries by searching through extensive datasets. Similarly, incorporating Large Language Models (LLMs) could provide your chatbot with capabilities for generating more nuanced and varied responses, further enhancing the user experience.</p>
+<h5>Running Your Chatbot in a Web Interface</h5>
+<p>To interact with your Rasa chatbot through a web interface, you will need to set up a channel that allows communication between the web frontend and your Rasa backend. While Rasa doesn't provide a built-in web interface, you can easily integrate one using the <a href="https://github.com/botfront/rasa-webchat">Rasa Webchat</a>, a customizable chat widget. Here's a basic guide to get you started:</p>
+<ol>
+<li>Ensure your Rasa bot is running by executing <code>rasa run</code> in your terminal.</li>
+<li>Simultaneously, run your custom actions server with <code>rasa run actions</code> if your bot uses custom actions.</li>
+<li>Include the Rasa Webchat widget in your web page by adding the following script tag, modifying the <code>socketUrl</code> to point to your running Rasa server:</li>
+</ol>
+<pre><code>&lt;script&gt;
+  !function(){
+    let e=document.createElement("script"),
+    t=document.head||document.getElementsByTagName("head")[0];
+    e.src="https://cdn.jsdelivr.net/npm/@botfront/rasa-webchat/lib/index.js",
+    e.async=!0,e.onload=()=&gt;window.WebChat.default({customData:{language:"en"},
+    socketUrl:"http://localhost:5005",socketPath:"/socket.io/",title:"Your Chatbot Title",
+    subtitle:"Your Subtitle"},null),
+    t.insertBefore(e,t.firstChild)
+  }();
+&lt;/script&gt;
+</code></pre>
+<p>This script injects the Rasa Webchat widget into your webpage, enabling direct browser interaction with your Rasa chatbot. Adjust the <code>socketUrl</code> to your Rasa server's address and port for a seamless conversational experience on your site. For broader connectivity, explore integrating your bot with various messaging platforms like Slack or Facebook Messenger by consulting <a href="https://rasa.com/docs/rasa/messaging-and-voice-channels/">Rasa's messaging and voice channels documentation</a>.</p>
+<h3>Conclusions</h3>
+<p>In this lab, you've taken initial steps toward building text mining systems and crafting chatbots ready for real-world application on company websites or social networks. </p>
+<p>We've already talked about the rising importance of chatbots for customer communications in the previous labs. With Rasa, a framework adopted by companies like American Express, Dell, and Adobe, you now have the capability to develop chatbots aimed at enhancing customer service and engagement. More importantly, your learning journey through NLP, Information Retrieval (TF-IDF &amp; cosine similarity), and Knowledge Graphs equips you with a diverse set of tools. This diversity allows you to select the most fitting approach—be it knowledge graphs for structured data, IR for content search, or NLP for understanding user queries—when designing solutions for various aspects of chatbot development.</p>
+<p>As the landscape of AI evolves with the advent of Large Language Models (LLMs), you might wonder about the continued relevance of platforms like Rasa. Despite their impressive capabilities, LLMs often present challenges in producing verifiable results, ensuring trustworthiness, and adapting to company-specific data not encountered during their training. It's important to recognize that Rasa's flexibility in integrating with LLMs and other AI technologies ensures its ongoing significance. Rasa offers a structured framework for deploying conversational AI, integrating multiple techniques that LLMs alone cannot provide. One such approach is <em>Retrieval-Augmented Generation (RAG)</em>, where the bot fetches structured data (e.g., from a database or knowledge graph) containing verified, possibly company-specific information and feeds this to an LLM to generate fluent responses based on this factual knowledge.</p>
+<p>Reflecting on the significance of text mining, it's important to note that approximately 80-90% of organizational data is unstructured, predominantly text. This underlines the sheer volume of information text mining navigates. The global text analytics market, valued at US$ 6.5 billion in 2020, is on a trajectory to expand at a CAGR of 20.2% until 2028. This growth reflects text mining's critical role in transforming businesses and industries. For instance, knowledge workers, who allocate 19% of their time to information search and gathering, stand to benefit greatly from efficiencies driven by text mining technologies. Furthermore, the potential for cost savings and enhanced revenue is notable, with data-driven decisions boosting revenue by over 25% and reducing customer churn by up to 15% in some sectors. In healthcare, the annual savings attributed to text mining efficiencies could amount to $5 billion. These statistics aren't just numbers; they represent the real-world impact and opportunities that await you as you develop your text mining skills. Embracing text mining can significantly contribute to your ability to influence operational efficiencies, decision-making processes, and innovation across a range of industries. By identifying areas where data isn't fully leveraged—like customer feedback on social media—and quickly deploying a text mining prototype like you've learned to craft in this lab, you can uncover insights that lead to improved products or services, thereby enhancing your ability to drive strategic decisions and innovation within any organization.</p>
+<p><em><br>That's all for this lab!</em></p>
