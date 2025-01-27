@@ -1,0 +1,232 @@
+<h2>Lab Session #11</h2>
+<h3>Introduction</h3>
+<p>Welcome to our final Lab #11. This time, we'll experiment with <em>Deep Learning</em> techniques for natural language processing in general and chatbots in particular. We'll look at how to apply deep<em> convolutional neural networks</em> (CNNs) to NLP and also experiment with (pre-trained) <em>transformer</em> models.</p>
+<p><img class="img-fluid align-middle" style="display: block; margin-left: auto; margin-right: auto;" role="presentation" src="hf.png" alt="Hugging Face landing page screenshot" width="753" height="336"></p>
+<p>The pre-trained models for our experiments are sourced from <a href="https://huggingface.co/">Hugging Face</a>, a platform at the forefront of democratizing advanced machine learning models, especially in the domain of natural language processing (NLP). Hugging Face hosts a wide array of models that have been pre-trained on diverse datasets, enabling researchers and developers to leverage these models for a variety of NLP tasks without the need for extensive computational resources. This accessibility significantly accelerates the pace of NLP research and application development, positioning Hugging Face as a pivotal entity in the AI field.</p>
+<h3>Follow-up Lab #10</h3>
+<p>Here's a <a href="keras-diabetes.py">sample script for Task #2</a> (neural network for diabetes analysis).</p>
+<p>And here's <a href="nn-embeddings-classifier.py">a sample implementation for Task #4</a> (text classification network using word embeddings).</p>
+<h3>Task #1: CNN Sentiment analysis</h3>
+<p>Since you are now familiar with linguistic feature extraction, let's try to use a Convolutional Neural Network (CNN) to perform a sentiment analysis task on the IMDB movie review dataset. You can read more about applying CNNs to language related tasks <a href="https://concordiauniversity.on.worldcat.org/oclc/1102387045">here</a>. For this task, we'll again be using the <a href="https://keras.io/">Keras library</a>, due to its balance between a friendly API and versatility, with <a href="https://www.tensorflow.org/">TensorFlow</a> as its back-end.</p>
+<p>First, download the <a href="https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews">IMDB movie reviews dataset.</a></p>
+<h5>Setting up TensorFlow with Keras</h5>
+<p>Last time, you learned how to use <code><tt>Sequential()</tt></code>, the neural network class that gives you access to the basic API of Keras, specifically the methods <code>compile</code> and <code>fit</code>, which will do the heavy lifting of building the underlying weights and their interconnected relationships (<code><tt>compile</tt></code>), calculating the errors in training, and most importantly applying backpropagation using <code><tt>fit</tt></code>. <tt><code>Epochs</code>, <code>batch_size</code>,</tt> and <code><tt>optimizer</tt></code> are all hyperparameters that will require tuning.</p>
+<p>Import the following libraries, and set a <em>seed</em> value for reproducibility:</p>
+<pre>from keras.models import Sequential
+from keras.layers import Conv1D, Dense, Dropout, Activation, MaxPooling1D, Flatten
+import csv
+from random import shuffle
+import spacy
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+np.random.seed(1337)</pre>
+<h5>NLP Preprocessing</h5>
+<p>Let's read the data file and create a data structure as tuples, with the target as the first element and the text as the second:</p>
+<pre>def pre_process_data(filepath):
+    print('Preprocessing data...')
+    dataset = []
+    with open(filepath, 'r') as in_file:
+        csv_reader = csv.reader(in_file, delimiter=',')
+        next(csv_reader, None)
+        for row in csv_reader:
+            dataset.append((int(row[1]), row[0]))
+
+    shuffle(dataset)
+    return dataset</pre>
+<p><b>Obtain Word Embeddings:</b> Once we have the dataset, our next step is to extract word embeddings for each token in each data point using spaCy. Make sure you have the spaCy library and the <em>large</em> or <em>medium</em> language model already downloaded, since the small model we've used before does not include any word embeddings:</p>
+<pre>def tokenize_and_vectorize(dataset):
+    print('Vectorizing data...')
+    nlp = spacy.load('en_core_web_md')
+    vectorized_data = []
+    # Each 'sample' is a tuple where sample[0] is the label and sample[1] is the text
+    for sample in dataset:
+        doc = nlp(sample[1])
+        sample_vec = []
+        for token in doc:
+            try:
+                sample_vec.append(token.vector)
+            except KeyError:
+                pass
+        vectorized_data.append(sample_vec)
+    return vectorized_data</pre>
+<p><b>Target Labels:</b> Next we extract all the target labels from the dataset:</p>
+<pre>def collect_expected(dataset):
+    print('Target extraction...')
+    # Extract target values (labels) from each sample in the dataset
+    # Each 'sample' is a tuple where sample[0] is the label
+    expected = [sample[0] for sample in dataset]
+    return expected</pre>
+<p><b>Padding the CNN Inputs:</b> Even though reviews within the dataset vary in length, CNNs require all data points to have a fixed size of tokens. Let's create a function to truncate or pad with 0s, ensuring all data points within the dataset have the same input vector length:</p>
+<pre>def pad_trunc(data, maxlen):
+    # For a given dataset, pad with zero vectors or truncate to 'maxlen'
+    new_data = []
+    
+    # Create a zero vector of the same length as our word vectors to use for padding
+    zero_vector = [0] * len(data[0][0])
+    
+    for sample in data:
+        if len(sample) &gt; maxlen:
+            temp = sample[:maxlen]
+        else:
+            # Efficient padding with zero vectors using list multiplication
+            temp = sample + [zero_vector] * (maxlen - len(sample))
+        new_data.append(temp)
+    return new_data
+</pre>
+<h5>Loading the Dataset</h5>
+<p>Since we have created all necessary functions, let's proceed by invoking them:</p>
+<pre># Replace '&lt;path_to_data_file&gt;' with the actual path to your IMDB dataset file.
+dataset = pre_process_data('&lt;path_to_data_file&gt;')
+vectorized_data = tokenize_and_vectorize(dataset)
+expected = collect_expected(dataset)
+</pre>
+<p>Now, let's split the data into training and testing sets using sklearn's <code>train_test_split</code> function, allocating 20% of the data for testing and setting a random state for reproducibility:</p>
+<pre>x_train, x_test, y_train, y_test = train_test_split(vectorized_data, expected, test_size=.20, random_state=40)
+</pre>
+<h5>Defining the CNN</h5>
+<p>Next, we initialize parameters for training our CNN model:</p>
+<pre># Maximum length of a review
+max_len = 400
+# Number of samples processed in one iteration
+batch_size = 32
+# Dimensionality of the embedding layer
+embedding_dim = 300
+# Number of filters in the convolutional layers
+filters = 250
+# Size of the convolution kernel
+kernel_size = 3
+# Dimensionality of the output space (i.e., the number of output neurons)
+hidden_dim = 250
+# Number of training epochs
+epochs = 2
+# Number of classes to predict (binary classification)
+num_classes = 1
+</pre>
+<p>Adjust the size of each sample to a fixed length and convert all datapoints to a numpy array structure for compatibility with Keras:</p>
+<pre>x_train = pad_trunc(x_train, max_len)
+x_test = pad_trunc(x_test, max_len)
+
+# Reshape data to fit the model's expected input format: (samples, time steps, features).
+x_train = np.reshape(x_train, (len(x_train), max_len, embedding_dim))
+x_test = np.reshape(x_test, (len(x_test), max_len, embedding_dim))
+# Convert labels to numpy arrays for Keras.
+y_train = np.array(y_train)
+y_test = np.array(y_test)
+</pre>
+<p><b>CNN Architecture:</b> Finally, we are done processing the input for our model. Let's now construct our CNN architecture:</p>
+<pre>model = Sequential()
+model.add(Conv1D(filters=filters,
+                 kernel_size=kernel_size,
+                 padding='valid',
+                 activation='relu',
+                 strides=1,
+                 input_shape=(max_len, embedding_dim)))
+model.add(MaxPooling1D(pool_size=2))
+model.add(Flatten())
+model.add(Dense(hidden_dim))
+model.add(Dropout(0.2))
+model.add(Activation('relu'))
+model.add(Dense(num_classes))
+model.add(Activation('sigmoid'))
+</pre>
+<h5>Training the CNN</h5>
+<p>Once we've constructed the full architecture, let's compile it:</p>
+<pre>model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+</pre>
+<p>Now let's fine-tune our model according to our training data:</p>
+<pre>model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          validation_data=(x_test, y_test))
+</pre>
+<p>Let's now evaluate the system's performance on our test data:</p>
+<pre>loss, acc = model.evaluate(x_test, y_test, verbose=0)
+print('Test Accuracy: %f' % (acc * 100))
+</pre>
+<p><b>Saving your Model:</b> As an additional exercise, consider saving your model and its weights. It's a best practice to save your trained model so you don't need to retrain it every time you want to make predictions. Instead, you can simply load the saved model and weights for future use. This not only saves computational resources but also time. For guidance on how to save and load models trained with Keras, refer to the <a href="https://keras.io/api/models/model_saving_apis/">Keras documentation on model saving and loading</a>.</p>
+<h5><b>Testing the Model</b></h5>
+<p>Now's it's time to put our system to test. Let's predict. Given the following, unseen text, try to make a prediction:</p>
+<pre>sample_1 = """I always wrote this series off as being a complete stink-fest because Jim Belushi was involved in it, and heavily. But then one day a tragic happenstance occurred. After a White Sox game ended I realized that the remote was all the way on the other side of the room somehow. Now I could have just gotten up and walked across the room to get the remote, or even to the TV to turn the channel. But then why not just get up and walk across the country to watch TV in another state? ""Nuts to that"", I said. So I decided to just hang tight on the couch and take whatever Fate had in store for me. What Fate had in store was an episode of this show, an episode about which I remember very little except that I had once again made a very broad, general sweeping blanket judgment based on zero objective or experiential evidence with nothing whatsoever to back my opinions up with, and once again I was completely right! This show is a total crud-pie! Belushi has all the comedic delivery of a hairy lighthouse foghorn. The women are physically attractive but too Stepford-is to elicit any real feeling from the viewer. There is absolutely no reason to stop yourself from running down to the local TV station with a can of gasoline and a flamethrower and sending every copy of this mutt howling back to hell. &lt;br /&gt;&lt;br /&gt;Except.. &lt;br /&gt;&lt;br /&gt;Except for the wonderful comic sty lings of Larry Joe Campbell, America's Greatest Comic Character Actor. This guy plays Belushi's brother-in-law, Andy, and he is gold. How good is he really? Well, aside from being funny, his job is to make Belushi look good. That's like trying to make butt warts look good. But Campbell pulls it off with style. Someone should invent a Nobel Prize in Comic Buffoonery so he can win it every year. Without Larry Joe this show would consist of a slightly vacant looking Courtney Thorne-Smith smacking Belushi over the head with a frying pan while he alternately beats his chest and plays with the straw on the floor of his cage. 5 stars for Larry Joe Campbell designated Comedic Bacon because he improves the flavor of everything he's in!"""</pre>
+<pre># Convert the sample text to a format suitable for the model
+vec_list = tokenize_and_vectorize([(0, sample_1)])
+# Ensure the vectorized text has the correct dimensions
+test_vec_list  = pad_trunc(vec_list, max_len)
+# Reshape the data for the model
+test_vec = np.reshape(test_vec_list, (len(test_vec_list), max_len, embedding_dim))
+# Predict the sentiment of the sample text
+print(model.predict(test_vec))
+</pre>
+<p>Try interpreting the model's prediction in the context of the sample text's sentiment.</p>
+<p>For more information on Extractive Question Answering, please refer to <a href="https://huggingface.co/transformers/task_summary.html#extractive-question-answering">this link</a>.</p>
+<h4>Summary</h4>
+<p>This exercise focused on applying Convolutional Neural Networks (CNNs) to perform sentiment analysis on the IMDB movie review dataset. We processed the data for neural network compatibility, including tokenization and vectorization, and outlined the steps for creating a CNN model. This included configuring the convolutional, max pooling, flattening, dense, and dropout layers to structure our neural network for optimal performance in text analysis tasks.</p>
+<p>CNNs offer advantages over simpler feed-forward models by efficiently identifying spatial hierarchies and patterns within the data, which is particularly beneficial for understanding the contextual nuances in language. However, while powerful for certain aspects of NLP, CNNs have limitations, such as handling long-term dependencies and understanding the sequence order in text, which are critical for comprehending the full meaning of language.</p>
+<p>In the next exercise, we will explore <em>transformers</em>, an advanced technique that addresses CNNs' limitations, especially in handling long-term dependencies and sequence order in text, with its <em>attention</em> mechanism.</p>
+<h3>Task #2: Transformers</h3>
+<p>Let's explore the use of state-of-the-art transformer models for solving NLP tasks. Unlike CNNs, which primarily capture spatial hierarchies and local patterns, transformers leverage <em>attention</em> mechanisms to understand the entire context of a sentence or document, allowing them to handle long-range dependencies in text more effectively. We will use pre-trained models available from <a href="https://huggingface.co/">Hugging Face</a>, bypassing the need for extensive training.</p>
+<p>Before starting with the task, ensure that the TensorFlow and Transformers libraries are installed. If not, use the following commands:</p>
+<pre>pip install tensorflow
+pip install transformers</pre>
+<h4>Task #2.1: Extractive Question Answering</h4>
+<p>Extractive Question Answering is the task of extracting an answer from a text given a question. This can be efficiently accomplished using transformer models, which have been pre-trained on a vast corpus of text and fine-tuned for specific tasks like question answering. </p>
+<p>To simplify the process of using these models, we can employ a pipeline, which abstracts away the complexities of manually handling input and output data for the model, making it easy to apply the model for specific tasks such as question answering:</p>
+<pre>nlp = pipeline("question-answering")</pre>
+<p>However, to gain deeper insight into how transformers work for question answering, we will directly use a model and a tokenizer. The tokenizer prepares the input by converting text to a format that the model can process, while the model predicts the answer to the question based on the input text. For this exercise, we will use TensorFlow alongside transformers:</p>
+<pre>from transformers import AutoTokenizer, TFAutoModelForQuestionAnswering
+import tensorflow as tf</pre>
+<p>BERT <em>(Bidirectional Encoder Representations from Transformers)</em> is a type of transformer that serves as an encoder, processing both left and right context in all layers, which makes it highly effective for understanding the context of words in a sentence. Let's instantiate a tokenizer and a model from the checkpoint name, specifically using a BERT model fine-tuned for question answering tasks:</p>
+<pre>tokenizer = AutoTokenizer.from_pretrained("bert-large-uncased-whole-word-masking-finetuned-squad")
+model = TFAutoModelForQuestionAnswering.from_pretrained("bert-large-uncased-whole-word-masking-finetuned-squad")</pre>
+<p>Next, we define a passage and some questions based on that passage. This will be our dataset for the question-answering task:</p>
+<pre>text = """In 1991, the remains of Russian Tsar Nicholas II and his family (except for Alexei and Maria) are discovered. The voice of Nicholas's young son, Tsarevich Alexei Nikolaevich, narrates the remainder of the story. 1883 Western Siberia, a young Grigori Rasputin is asked by his father and a group of men to perform magic. Rasputin has a vision and denounces one of the men as a horse thief. Although his father initially slaps him for making such an accusation, Rasputin watches as the man is chased outside and beaten. Twenty years later, Rasputin sees a vision of the Virgin Mary, prompting him to become a priest. Rasputin quickly becomes famous, with people, even a bishop, begging for his blessing."""
+questions = ["Who became famous?","What was discovered in 1991?"]
+</pre>
+<p>For each question, we compute the confidence score, identifying the span of text that most likely answers the question:</p>
+<pre>for question in questions:
+    # Tokenize the input text along with the question to prepare input for BERT
+    inputs = tokenizer(question, text, add_special_tokens=True, return_tensors="tf")
+    input_ids = inputs["input_ids"].numpy()[0]
+    outputs = model(inputs)
+    answer_start_scores = outputs.start_logits
+    answer_end_scores = outputs.end_logits
+    answer_start = tf.argmax(answer_start_scores, axis=1).numpy()[0]
+    answer_end = (tf.argmax(answer_end_scores, axis=1) + 1).numpy()[0]
+    answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(input_ids[answer_start:answer_end]))
+    print(f"Question: {question}")
+    print(f"Answer: {answer}")
+</pre>
+<p>Validate the generated answers and experiment with different passages and sets of questions to explore the capabilities of transformer models further. For more information on Extractive Question Answering, please refer to <a href="https://huggingface.co/docs/transformers/task_summary#question-answering">this link</a>.</p>
+<h5>How does it work?</h5>
+<p>On a technical level, the transformer model, specifically BERT in this exercise, approaches the task of extractive question answering by processing the input text and question pair through its multiple layers. Each layer of BERT consists of bidirectional self-attention mechanisms that allow it to consider the full context of the text—both left and right of each word—at every layer. This process enables the model to understand the nuanced relationship between the question and the passage. The model outputs logits that represent the likelihood of each token in the text being the start or end of the answer. These logits are then converted into probabilities using a softmax function. The tokens with the highest probabilities for the start and end positions are selected to form the final answer. This method allows the transformer to dynamically focus on the most relevant parts of the passage in relation to the question, extracting the answer based on the learned relationships between words and phrases across its extensive pre-training on diverse text data.</p>
+<h4>Task #2.2: Text Generation</h4>
+<p>Text Generation, an open-ended task, involves creating coherent text continuation from a given context. This task can be streamlined using an NLP pipeline, which abstracts the complexities of model and tokenizer interactions:</p>
+<pre>text_generator = pipeline("text-generation")</pre>
+<p>Exploring text generation further, let's use TensorFlow alongside a model and tokenizer. Start by importing the necessary libraries, noting the update to the model class for text generation:</p>
+<pre>from transformers import TFAutoModelForCausalLM, AutoTokenizer</pre>
+<p>Instantiate both tokenizer and model, selecting <code>xlnet-base-cased</code> for its proficiency in handling complex text structures:</p>
+<pre>model = TFAutoModelForCausalLM.from_pretrained("xlnet-base-cased")
+tokenizer = AutoTokenizer.from_pretrained("xlnet-base-cased")</pre>
+<p>Define a context passage and a prompt for the model to extend. Below is our base text and the starting point for generation:</p>
+<pre>text = """A solar eclipse occurs when the Moon passes between Earth and the Sun, thereby obscuring the view of the Sun from a small part of Earth, totally or partially. Such an alignment occurs approximately every six months, during the eclipse season in its new moon phase, when the Moon's orbital plane is closest to the plane of Earth's orbit. In a total eclipse, the disk of the Sun is fully obscured by the Moon. In partial and annular eclipses, only part of the Sun is obscured. Unlike a lunar eclipse, which may be viewed from anywhere on the night side of Earth, a solar eclipse can only be viewed from a relatively small area of the world. As such, although total solar eclipses occur somewhere on Earth every 18 months on average, they recur at any given place only once every 360 to 410 years. """
+prompt = "Today the weather is really nice and I am planning on "</pre>
+<p>Prepare the input and set the generation parameters, focusing on <code>top_p</code> and <code>top_k </code>to guide the randomness and diversity of the output:</p>
+<pre>inputs = tokenizer.encode(text + prompt, add_special_tokens=False, return_tensors="tf")
+outputs = model.generate(inputs, max_length=250, do_sample=True, top_p=0.95, top_k=60)</pre>
+<p>Concatenate the prompt with the generated continuation, ensuring a seamless transition from provided text to model-created content:</p>
+<pre>generated = prompt + tokenizer.decode(outputs[0])[prompt_length:]</pre>
+<p>Review the model's creative output:</p>
+<pre>print(generated)</pre>
+<p>For an in-depth exploration of Text Generation techniques and parameters, please refer to <a href="https://huggingface.co/docs/transformers/task_summary#language-modeling">Hugging Face's documentation</a>.</p>
+<h5>From Text Generation to ChatGPT</h5>
+<p>Question-answering chatbots based on transformer models, like <a href="https://chat.openai.com">ChatGPT</a>, are sophisticated extensions of the text generation concept. While text generation can create coherent text from a prompt, chatbots are engineered to comprehend and reply to questions in a conversational manner. Consider the question <em>"What is the capital of Germany?"</em> A simple text generation model might generate a continuation based on common associations or previous sentences seen in its training data, potentially crafting a sentence that discusses Germany but not directly answering the question.</p>
+<p>In contrast, chatbots like ChatGPT employ techniques such as leveraging structured knowledge bases or being fine-tuned on specific patterns of question and answer pairs. This enables them to identify <em>"What is the capital of Germany?"</em> as a request for factual information and respond accurately with <em>"The capital of Germany is Berlin."</em> They achieve this by understanding the <em>intent</em> behind the question and generating a response that directly addresses the user's inquiry. This fine-tuning process involves training the model on a diverse set of dialogues and incorporating mechanisms to prioritize factual accuracy and relevance in the responses, transforming the model from a mere text generator into an interactive conversational agent.</p>
+<p>This progression from simple text generation to interactive chatbots exemplifies how advancements in NLP and transformer technology are pushing the boundaries of what's possible in artificial intelligence.</p>
+<h3>Conclusions</h3>
+<p>Congratulations, you've reached the end of our course on Intelligent Systems! However, your journey into AI is just beginning. This journey has taken you from the basics of AI to the cutting-edge of Intelligent Systems, each step preparing you for the challenges and opportunities that lie ahead in both industry and research. </p>
+<p>Your exploration has covered a spectrum of AI technologies and methodologies. From organizing complex datasets with <em>Knowledge Graphs</em> using RDFlib, SPARQL &amp; Apache Fuseki, to diving into <em>Machine Learning</em> with scikit-learn, you've developed skills crucial across sectors. You've seen how <em>Neural Networks</em> and <em>Deep Learning</em> drive innovations in content analysis and generation. You've learned how to use <em>TensorFlow</em>, a major AI framework and deploy pre-trained models for your applications from <em>Hugging Face</em>. Most importantly, through practical applications, you've turned theory into action, readying yourself for real-world challenges.</p>
+<p>As you venture beyond this course, remember that the field of AI is vast and ever-evolving. Whether your interest lies in enhancing machine perception through <em>Computer Vision</em>, unraveling languages with <em>Advanced NLP,</em> or pioneering <em>Ethical AI</em> solutions, there's a niche for your passion and expertise. Stay curious, keep learning, and don't hesitate to dive deeper into the specific AI domains that fascinate you, either on your own or through further courses. Whether you choose to advance the frontiers of AI in industry or continue graduate studies in academia, you're now equipped with a solid foundation and a clear understanding of how intelligent systems can be developed and applied to meet real-world needs.</p>
+<p>Congratulations once again, and here's to your future in AI—a journey that's just begun.</p>
+<p><em>That's all for this course!</em></p>
